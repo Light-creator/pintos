@@ -202,7 +202,7 @@ thread_start (void)
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void
-thread_tick (void) 
+thread_tick (int64_t curr_tick) 
 {
   struct thread *t = thread_current ();
 
@@ -215,7 +215,8 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-
+  
+  thread_wakeup(curr_tick);
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
