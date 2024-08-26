@@ -97,10 +97,22 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
-
+  
+    int64_t time_to_wakeup;
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+typedef struct _list_node {
+  struct thread *th;
+  struct _list_node *next;
+} list_node;
+
+typedef struct _List {
+  list_node *head;
+  list_node *tail;
+  int len;
+} List;
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -137,5 +149,17 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+// Additional thread methods
+void thread_sleep(int64_t time_to_wakeup);
+void thread_wakeup(int64_t curr_tick); 
+
+// List methods
+list_node *create_node(struct thread *th);
+List create_list(void);
+
+void push(List *list_obj, struct thread *th);
+void bubble_sort(List *list_obj);
+void print_list(List *list_obj);
 
 #endif /* threads/thread.h */

@@ -23,6 +23,7 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
+static List blocked_list;
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -70,6 +71,87 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+
+list_node *create_node(struct thread *th) {
+  list_node *node = (list_node*)malloc(sizeof(list_node));
+  node->th = th;
+  node->next = NULL;
+
+  return node;
+}
+
+List create_list(void) {
+  List list_obj;
+  list_obj.head = NULL;
+  list_obj.tail = NULL;
+  list_obj.len = 0;
+
+  return list_obj;
+}
+
+void push(List *list_obj, struct thread *th) {
+  list_node *node = create_node(th);
+
+  if(list_obj->head == NULL) {
+    list_obj->head = node;
+    list_obj->tail = node;
+    return;
+  }
+
+  list_obj->tail->next = node;
+  list_obj->tail = node;
+  list_obj->len++;
+}
+
+void bubble_sort(List *list_obj) {
+  if(list_obj->head == NULL)
+    return;
+  
+  int i;
+  for(i=0; i<list_obj->len; i++) {
+    list_node *ptr = list_obj->head->next;
+    list_node *prev = list_obj->head;
+
+    while(ptr != NULL) {
+      if(prev->th->time_to_wakeup > ptr->th->time_to_wakeup) {
+        struct thread *th_tmp = ptr->th;
+        ptr->th = prev->th;
+        prev->th = th_tmp;
+      }
+
+      ptr = ptr->next;
+      prev = prev->next;
+    }
+  }
+}
+
+void print_list(List *list_obj) {
+  list_node *ptr = list_obj->head;
+  while(ptr != NULL) {
+    printf("-- %d -- ", ptr->th->tid);
+    ptr = ptr->next;
+  }
+  printf("\n");
+}
+
+void thread_sleep(int64_t time_to_wakeup) {
+  struct thread *th = thread_current();
+  th->time_to_wakeup = time_to_wakeup;
+
+  push(&blocked_list, th);
+  bubble_sort(&blocked_list);
+  thread_block();
+}
+
+void thread_wakeup(int64_t curr_tick) {
+  ASSERT(intr_get_level() == INTR_OFF);
+  while(blocked_list.head != NULL && blocked_list.head->th->time_to_wakeup <= curr_tick) {
+    thread_unblock(blocked_list.head->th);
+    
+    blocked_list.head = blocked_list.head->next;
+    blocked_list.len--;
+  }
+}
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
