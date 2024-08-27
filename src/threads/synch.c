@@ -261,7 +261,7 @@ lock_try_acquire (struct lock *lock)
    make sense to try to release a lock within an interrupt
    handler. */
 
-int find_max_priority(void) {
+int find_max_priority() {
   struct thread *curr = thread_current();
   int i, max;
   max = -1;

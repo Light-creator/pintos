@@ -466,7 +466,7 @@ void thread_set_priority (int new_priority) {
   if(max_prior != -1)
     curr->priority = max_prior;
   
-  if(!list_empty(&ready_list))
+  if(list_empty(&ready_list))
     return;
 
   struct thread *first_ready = list_entry (list_front (&ready_list), struct thread, elem);

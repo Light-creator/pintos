@@ -169,7 +169,6 @@ void thread_sleep(int64_t time_to_wakeup);
 void thread_wakeup(int64_t curr_tick); 
 
 void sort_and_yield(int holder_priority);
-int find_max_priority(void);
 
 // Queue methods
 arr_queue create_queue(void);
@@ -178,6 +177,7 @@ int push_queue(arr_queue *q, int val);
 // List methods
 list_node *create_node(struct thread *th);
 List create_list(void);
+void print_queue(struct thread *th);
 
 void push(List *list_obj, struct thread *th);
 void bubble_sort(List *list_obj);
