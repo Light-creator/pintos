@@ -80,6 +80,13 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
+
+typedef struct _arr_queue {
+  int arr[8];
+  int len;
+} arr_queue;
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -120,10 +127,6 @@ typedef struct _List {
   int len;
 } List;
 
-typedef struct _arr_queue {
-  int arr[8];
-  int len;
-} arr_queue;
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -164,6 +167,12 @@ int thread_get_load_avg (void);
 // Additional thread methods
 void thread_sleep(int64_t time_to_wakeup);
 void thread_wakeup(int64_t curr_tick); 
+
+void sort_and_yeild(int holder_priority);
+
+// Queue methods
+arr_queue create_queue(void);
+int push_queue(arr_queue *q, int val);
 
 // List methods
 list_node *create_node(struct thread *th);

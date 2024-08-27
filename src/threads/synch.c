@@ -226,7 +226,7 @@ void lock_acquire (struct lock *lock) {
         curr = next_holder;
       }
 
-        sort_and_yield();
+        // sort_and_yield();
       }
   }
 
@@ -261,7 +261,7 @@ lock_try_acquire (struct lock *lock)
    make sense to try to release a lock within an interrupt
    handler. */
 
-int find_max_priority() {
+int find_max_priority(void) {
   struct thread *curr = thread_current();
   int i, max;
   max = -1;
@@ -322,6 +322,7 @@ lock_held_by_current_thread (const struct lock *lock)
 /* One semaphore in a list. */
 struct semaphore_elem 
   {
+    int priority;
     struct list_elem elem;              /* List element. */
     struct semaphore semaphore;         /* This semaphore. */
   };
@@ -373,7 +374,9 @@ void cond_wait (struct condition *cond, struct lock *lock) {
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
+  struct thread *th = thread_current();
   list_insert_ordered(&cond->waiters, &waiter.elem, value_priority_condvar, NULL);
+  waiter.priority = th->priority;
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
