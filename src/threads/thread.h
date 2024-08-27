@@ -168,7 +168,8 @@ int thread_get_load_avg (void);
 void thread_sleep(int64_t time_to_wakeup);
 void thread_wakeup(int64_t curr_tick); 
 
-void sort_and_yeild(int holder_priority);
+void sort_and_yield(int holder_priority);
+int find_max_priority(void);
 
 // Queue methods
 arr_queue create_queue(void);
