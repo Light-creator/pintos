@@ -136,6 +136,29 @@ void print_list(List *list_obj) {
   printf("\n");
 }
 
+arr_queue create_queue() {
+  arr_queue q;
+  //q.arr = NULL;
+  q.len = 0;
+
+  return q;
+}
+
+int push_queue(arr_queue *q, int val) {
+  q->len++;
+  q->arr[q->len-1] = val;
+  printf("len: %d\n", q->len);
+  return q->len-1;
+}
+
+void print_queue(struct thread *th) {
+  printf("%s: ", th->name);
+  int i;
+  for(i=0; i<th->queue.len; i++)
+    printf("-- %d --", th->queue.arr[i]);
+  printf("\n");
+}
+
 void thread_sleep(int64_t time_to_wakeup) {
   struct thread *th = thread_current();
   th->time_to_wakeup = time_to_wakeup;
