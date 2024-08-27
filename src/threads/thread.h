@@ -97,7 +97,13 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
-  
+
+    // Priority donation
+    int count;
+    arr_queue queue;
+    struct lock *wait_on_lock;
+    int prev_priority;
+
     int64_t time_to_wakeup;
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
@@ -113,6 +119,11 @@ typedef struct _List {
   list_node *tail;
   int len;
 } List;
+
+typedef struct _arr_queue {
+  int arr[8];
+  int len;
+} arr_queue;
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
