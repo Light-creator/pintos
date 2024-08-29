@@ -18,6 +18,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+struct semaphore sema_proc;
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -31,18 +33,73 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  char new_filename[14];
+  int i = 0;
+  for(; file_name[i] != ' ' && i < strlen(file_name); i++)
+    new_filename[i] = file_name[i];
+  new_filename[i] = '\0';
+  //printf("new_filename: [%s]\n", new_filename);
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+  sema_init(&sema_proc, 0);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (new_filename, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
+}
+
+void construct_esp(char *file_name, void **esp) {
+  char **argv;
+  int argc = 0;
+  char copy_file_name[100];
+  int ret = 0;
+  argv = (char**)malloc(sizeof(char*)*20);
+
+  char *tk, *ptr;
+  strlcpy(copy_file_name, file_name, strlen(file_name)+1);
+  for(tk = strtok_r(copy_file_name, " ", &ptr); tk != NULL; tk = strtok_r(NULL, " ", &ptr)) {
+    argv[argc] = tk;
+    argc++;
+  }
+
+  int i = argc-1;
+  int sum_len = 0;
+  for(; i>=0; i--) {
+    int str_len = strlen(argv[i])+1;
+    *esp -= str_len;
+    sum_len += str_len;
+    strlcpy(*esp, argv[i], str_len);
+    argv[i] = *esp;
+  } 
+
+  *esp -= sum_len%4 == 0 ? 0 : 4-sum_len%4;
+  *esp -= 4;
+  memcpy(*esp, &ret, sizeof(int));
+
+  i = argc-1;
+  for(; i>=0; i--) {
+    *esp -= 4;
+    memcpy(*esp, &argv[i], sizeof(int));
+  }
+
+  char *esp_ptr = *esp;
+  *esp -= 4;
+  memcpy(*esp, &esp_ptr, sizeof(int));
+
+  *esp -= 4;
+  memcpy(*esp, &argc, sizeof(int));
+
+  *esp -= 4;
+  memcpy(*esp, &ret, sizeof(int));
+
+  free(argv);
 }
 
 /* A thread function that loads a user process and starts it
@@ -54,16 +111,25 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char new_filename[14];
+  int i = 0;
+  for(; file_name[i] != ' ' && i < strlen(file_name); i++)
+    new_filename[i] = file_name[i];
+  new_filename[i] = '\0';
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load(new_filename, &if_.eip, &if_.esp);
+  if(success)
+    construct_esp(file_name, &if_.esp);
+
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success)
     thread_exit ();
 
   /* Start the user process by simulating a return from an
@@ -88,6 +154,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  sema_down(&sema_proc);
   return -1;
 }
 
@@ -101,8 +168,7 @@ process_exit (void)
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
-  if (pd != NULL) 
-    {
+  if (pd != NULL) {
       /* Correct ordering here is crucial.  We must set
          cur->pagedir to NULL before switching page directories,
          so that a timer interrupt can't switch back to the
@@ -110,10 +176,13 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
-      cur->pagedir = NULL;
-      pagedir_activate (NULL);
-      pagedir_destroy (pd);
-    }
+
+    printf("%s: exit(%d)\n", cur->name, cur->exit_status);
+    sema_up(&sema_proc);
+    cur->pagedir = NULL;
+    pagedir_activate (NULL);
+    pagedir_destroy (pd);
+  }
 }
 
 /* Sets up the CPU for running user code in the current
