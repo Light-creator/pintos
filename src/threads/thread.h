@@ -101,6 +101,8 @@ struct thread
     int64_t time_to_wakeup;
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    int exit_status;
   };
 
 typedef struct _list_node {
