@@ -289,6 +289,9 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+  // printf("thread_current = %s | child = %s\n", thread_current()->name, t->name);
+  list_push_back(&thread_current()->children, &t->child_elem);
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -554,6 +557,16 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   t->exit_status = 0;
   list_push_back (&all_list, &t->allelem);
+
+  list_init(&t->children);
+  sema_init(&t->exit_sema, 0);
+  sema_init(&t->load_sema, 0);
+  sema_init(&t->wait_sema, 0);
+  t->child_elem.next = NULL;
+  t->child_elem.prev = NULL;
+  t->is_exit = false;
+  t->exit_status = 0;
+  t->load_status = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
