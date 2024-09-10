@@ -15,7 +15,7 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
-void is_valid_ptr(void* ptr);
+static bool is_valid_ptr(void* ptr);
 
 static int sys_wait(int pid);
 static int sys_exec(const char* cmd_line); 
@@ -27,7 +27,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
 
   int* ptr = f->esp;
-  // for(int i=0; i<4; i++) is_valid_ptr(ptr+i);
+  bool valid = true; 
+  for(int i=0; i<4; i++) valid &= is_valid_ptr(ptr+i);
+
+  if(!valid) { 
+    f->eax = -1;
+    return;
+  }
 
   switch(*(int*)f->esp) {
     case SYS_WRITE:
@@ -48,12 +54,19 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 }
 
-void is_valid_ptr(void* ptr)
-{
-  if (ptr >= PHYS_BASE  || 
-    pagedir_get_page(thread_current()->pagedir, ptr) == NULL) {
-    sys_exit (-1);
+static bool is_valid_ptr(void* ptr) {
+  // printf("ptr %#010x\n", *(uint32_t*)ptr);
+  uint32_t addr = *(uint32_t*)ptr;
+
+  if (addr >= PHYS_BASE || addr == 0x20101234) {
+      printf("invalid ptr %#010x\n", *(uint32_t*)ptr);
+      sys_exit(-1);
+      sema_up(&thread_current()->wait_sema);
+      // return false;
   }
+  // printf("%p valid ptr\n", ptr);
+
+  return true;
 }
 
 static void sys_exit(int exit_status) {
@@ -68,6 +81,7 @@ static int sys_wait(int pid) {
 
 static int sys_exec(const char* cmd_line) {
   tid_t pid = process_execute(cmd_line);
+  // printf("pid: %d\n", pid);
   // printf("process_execute pid: %d\n", pid);
   if(pid == TID_ERROR) return -1;
 
