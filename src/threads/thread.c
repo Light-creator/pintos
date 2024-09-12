@@ -568,6 +568,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->is_exit = false;
   t->exit_status = 0;
   t->load_status = 0;
+
+  t->fdt_size = 2;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

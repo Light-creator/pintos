@@ -25,6 +25,8 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+#define FDT_SIZE 64
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -107,6 +109,9 @@ struct thread
     bool is_exit;
     int exit_status;
     int load_status;
+
+    struct file* fdt[FDT_SIZE];
+    int fdt_size;
 
     int64_t time_to_wakeup;
     /* Owned by thread.c. */
