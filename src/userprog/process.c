@@ -39,7 +39,6 @@ process_execute (const char *file_name)
   for(; file_name[i] != ' ' && i < strlen(file_name); i++)
     new_filename[i] = file_name[i];
   new_filename[i] = '\0';
-  //printf("new_filename: [%s]\n", new_filename);
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -48,9 +47,7 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
   sema_init(&sema_proc, 0);
-  // printf("process_execute(%s)\n", file_name);
 
-  // printf("process_execute(%s)\n", file_name);
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (new_filename, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -61,18 +58,15 @@ process_execute (const char *file_name)
 struct thread* get_child(tid_t pid) {
   struct list* lst = &thread_current()->children;
   if(!lst || list_empty(lst)) return NULL;
-  // printf("lst: %p\n", lst);
 
   struct list_elem *e;
 
   for (e = list_begin(lst); e != list_end(lst); e = list_next(e)) {
       struct thread *t = list_entry(e, struct thread, child_elem);
       if(!t || t->tid < 0) return NULL;
-      // printf("t: %p | %s | %d\n", t, t->name, t->tid);
       if(t->tid == pid) return t;
   }
 
-  // printf("return NULL\n");
   return NULL;
 }
 
@@ -144,15 +138,11 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
 
-  // printf("start_process(%s)\n", new_filename);
   success = load(new_filename, &if_.eip, &if_.esp);
-  // printf("load(%s): %d\n", new_filename, success);
 
-  // printf("Before construct_esp\n");
   if(success)
     construct_esp(file_name, &if_.esp);
 
-  // printf("After construct_esp\n");
   struct thread* curr = thread_current();
   curr->load_status = success;
   sema_up(&curr->load_sema);
@@ -190,18 +180,11 @@ process_wait (tid_t child_tid UNUSED)
 
   int res_status = -1;
 
-  // if(child_process->is_exit) {
-  //   res_status = child_process->exit_status;
-  //   goto done;
-  // }
-  // printf("sema_up(wait_sema)\n");
   sema_up(&child_process->wait_sema);
-  // printf("sema_down(exit_sema)\n");
-  res_status = child_process->exit_status;
-  sema_down(&child_process->exit_sema); 
-  // printf("exit_status: %d\n", res_status);
 
-// done:
+  res_status = child_process->exit_status;
+  sema_down(&child_process->exit_sema);
+
   child_process->child_elem.next = child_process->child_elem.next;
   child_process->child_elem.prev = child_process->child_elem.prev;
   return res_status;
@@ -212,16 +195,14 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
-  // printf("Before sema_down(wait_sema)\n");
-  sema_down(&cur->wait_sema);
-  // printf("After sema_down(wait_sema)\n");
 
-  // printf("process_exit(%s) tid = %d\n", cur->name, cur->tid);
+  sema_down(&cur->wait_sema);
+
   uint32_t *pd;
   
   cur->is_exit = true;
   printf("%s: exit(%d)\n", cur->name, cur->exit_status);
-  // printf("sema_up(exit_sema)\n");
+
   sema_up(&cur->exit_sema);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -234,10 +215,6 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
-    // cur->is_exit = true;
-    // sema_up(&cur->exit_sema);
-    // printf("%s: exit(%d)\n", cur->name, cur->exit_status);
-    // sema_up(&sema_proc);
     cur->pagedir = NULL;
     pagedir_activate (NULL);
     pagedir_destroy (pd);
