@@ -48,6 +48,7 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
   sema_init(&sema_proc, 0);
+  // printf("process_execute(%s)\n", file_name);
 
   // printf("process_execute(%s)\n", file_name);
   /* Create a new thread to execute FILE_NAME. */
@@ -145,11 +146,13 @@ start_process (void *file_name_)
 
   // printf("start_process(%s)\n", new_filename);
   success = load(new_filename, &if_.eip, &if_.esp);
-  // printf("load(%s): %d", new_filename, success);
+  // printf("load(%s): %d\n", new_filename, success);
 
+  // printf("Before construct_esp\n");
   if(success)
     construct_esp(file_name, &if_.esp);
 
+  // printf("After construct_esp\n");
   struct thread* curr = thread_current();
   curr->load_status = success;
   sema_up(&curr->load_sema);
